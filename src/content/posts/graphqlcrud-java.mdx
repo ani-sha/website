@@ -1,0 +1,313 @@
+---
+title: "GraphQLCRUD Java: A Framework to Build GraphQL APIs for Any Database"
+publishedOn: 2020-11-05T09:15:00-0400
+category: "graphql"
+draft: false
+description:
+---
+
+Few months ago, my team and I were working on this cool proof of concept project to build an extensive framework built in Java using GraphQLCRUD specification.
+The idea was to build a framework that provides a specification for common operation on top of GraphQL. And GraphQLCRUD Java was born.
+We were able to able achieve this using the `graphql-java` library along with many interesting features.
+I am going to share an overview and the capabilities of the framework in this post.
+
+## What is GraphQLCRUD Java?
+
+GraphQLCRUD Java is a specification that provides a set of common operations on top of GraphQL.
+This Java-based framework is designed to create GraphQLCRUD-based APIs for a specified database.
+Users can seamlessly integrate their existing database and data into the framework and it offers the flexibility to either construct
+a straightforward application using the provided template or integrate it directly into a Java application.
+The framework facilitates the exposure of a GraphQL API, providing a versatile solution for interacting with relational databases.
+
+## Features
+
+Let's quickly go through the features of the framework:
+
+- When utilizing this framework, meticulously examine specifications to identify patterns aligned with your database or business requisites.
+- The framework offers canonical versions and diverse variants, offering a comprehensive overview of prevalent schema approaches.
+- Concentrate on your business logic and data, leveraging the framework to effortlessly generate GraphQL CRUD compliant schemas in a language of your preference.
+- This tool abstracts from extensive GraphQL vendors, ensuring flexibility and the capacity to migrate seamlessly without necessitating client and resolver reconstruction.
+- Prioritizing productivity, it equips developers with potent query capabilities, devoid of dependence on specific GraphQL solution providers.
+
+## CRUD Operations and Capabilities
+
+The framework supports the following CRUD operations:
+
+- Create: create a new record in the database
+- Update: update an existing record in the database
+- Delete: delete an existing record from the database by its ID
+- Get: retrieve a record from the database by its ID
+- Find: retrieve a list of records from the database
+
+There are also additional capabilities such as:
+
+- Pagination: the ability to paginate through a list of records
+- Filtering: the ability to filter records based on specific criteria/fields
+- Countablity: the ability to count the number of records
+- Consistency: the ability to ensure that the schema is consistent with the database
+
+## How to does it work?
+
+Take any database or data source, the GraphQL CRUD Java engine can automatically generate a GraphQL schema and process GraphQL queries and mutations.
+So what happens is that the engine automatically generates a GraphQL schema based on the database schema and the GraphQLCRUD specification.
+It defines the types and fields in the schema based on the tables and columns in the database.
+In a more nested query, there is ablity to provide query with filters, pagination, and sorting as arguments to the query.
+The framework offers robust functionality by providing insert mutations equipped with `input` arguments to support insert operations.
+It facilitates update mutations through `filter` and `input` arguments, enabling seamless execution of bulk updates.
+Furthermore, the delete mutations are incorporated with a `filter` argument to efficiently handle bulk deletion operations.
+
+## Examples
+
+Let's take a couple of examples to understand how the framework works.
+
+#### Example 1: Query to get a list of all accounts
+
+```
+{
+  accounts {
+    account_id
+    status
+    ssn
+    }
+}
+```
+
+The above query will return a list of all accounts with their `account_id`, `status`, and `ssn`.
+
+```
+{
+  "data": {
+    "accounts": [
+      {
+        "account_id": "19980001",
+        "status": "Personal",
+        "ssn": "CST01002"
+      },
+      {
+        "account_id": "19980002",
+        "status": "Personal",
+        "ssn": "CST01002"
+      },
+      {
+        "account_id": "19980003",
+        "status": "Personal",
+        "ssn": "CST01003"
+      }
+    ]
+  }
+}
+```
+
+#### Example 2: Query to get an account using it's primary key
+
+```
+{
+  account(account_id: 19980001) {
+    account_id
+    ssn
+    status
+    type
+  }
+}
+```
+
+The above query will return an account with `account_id` of `19980001` with its `account_id`, `status`, `ssn`, and `type`.
+
+```
+{
+  "data": {
+    "account": {
+      "account_id": "19980001",
+      "ssn": "CST01002",
+      "status": "Personal",
+      "type": "Active"
+    }
+  }
+}
+```
+
+#### Example 3: Query to filter customers by their first name
+
+```
+{
+  customers(filter: {
+    firstname: {
+      eq: "James"
+    }
+  }) {
+    firstname
+    lastname
+    ssn
+    phone
+  }
+}
+```
+
+The above query will return a list of customers with `firstname` as `James` with their `firstname`, `lastname`, `ssn`, and `phone`.
+
+```
+{
+  "data": {
+    "customers": [
+      {
+        "firstname": "James",
+        "lastname": "Drew",
+        "ssn": "CST01036",
+        "phone": "(216)555-6523"
+      }
+    ]
+  }
+}
+```
+
+#### Example 4: Query to fetch two customers starting from the top of the list using limit and pagination clause
+
+```
+{
+  customers(page: {
+    limit: 2
+  }) {
+    firstname
+    lastname
+    ssn
+    phone
+  }
+}
+```
+
+The above query will return a list of customers with `limit` of `2` with their `firstname`, `lastname`, `ssn`, and `phone`.
+
+```
+{
+  "data": {
+    "customers": [
+      {
+        "firstname": "John",
+        "lastname": "Doe",
+        "ssn": "CST01002  ",
+        "phone": "(646)555-1776"
+      },
+      {
+        "firstname": "Bob",
+        "lastname": "Smith",
+        "ssn": "CST01003  ",
+        "phone": "(412)555-4327"
+      }
+    ]
+  }
+}
+```
+
+#### Example 5: Query to fetch two customers starting from the 2nd record using pagination and limit clause whose firstname starts with 'J'
+
+```
+{
+  customers(filter: {
+    firstname: {
+      startsWith: "J"
+    }
+  }, page: {
+    limit: 2,
+    offset: 2
+  }) {
+    firstname
+    lastname
+    ssn
+    phone
+  }
+}
+```
+
+The above query will return a list of customers with `limit` of `2` and `offset` of `2` with their `firstname`, `lastname`, `ssn`, and `phone` whose `firstname` starts with `J`.
+
+```
+{
+  "data": {
+    "customers": [
+      {
+        "firstname": "Jack",
+        "lastname": "Corby",
+        "ssn": "CST01015  ",
+        "phone": "(469)555-8023"
+      },
+      {
+        "firstname": "James",
+        "lastname": "Drew",
+        "ssn": "CST01036  ",
+        "phone": "(216)555-6523"
+      }
+    ]
+  }
+}
+```
+
+#### Example 6: Mutation to insert a new customer
+
+```
+mutation {
+  createCustomer(input: {
+    firstname: "James",
+    lastname: "Corners",
+    ssn: "CST00989"
+  }) {
+    firstname
+    lastname
+    ssn
+  }
+}
+```
+
+The above mutation will insert a new customer with `firstname` as `James`, `lastname` as `Corners`, and `ssn` as `CST00989`.
+
+```
+{
+  "data": {
+    "createCustomer": {
+      "firstname": "James",
+      "lastname": "Corners",
+      "ssn": "CST00989"
+    }
+  }
+}
+```
+
+#### Example 7: Mutation to delete a customer named `Andrew`
+
+```
+mutation {
+  deleteCustomer(filter: {
+    firstname: {
+      eq: "Andrew"
+    }
+  }) {
+    firstname
+    lastname
+    ssn
+    phone
+  }
+}
+```
+
+The above mutation will delete a customer with `firstname` as `Andrew`.
+
+```
+{
+  "data": {
+    "deleteCustomer": {
+      "firstname": "Andrew",
+      "lastname": "Moore",
+      "ssn": "CST01003"
+    }
+  }
+}
+```
+
+## Conclusion
+
+The GraphQLCRUD Java framework is a powerful tool that can be used to build a GraphQL API for any database.
+You can expand the framework as per your needs to make it more robust.
+Additionally, you can explore the entire schema and the available queries using the `GraphiQL` interface.
+
+To learn more about GraphQLCRUD Java, you can visit the [github repository](https://github.com/graphqlcrud/graphqlcrud-java).
+
+Drop a star if you find it useful and feel free to contribute to the project.

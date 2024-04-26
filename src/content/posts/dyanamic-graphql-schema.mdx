@@ -1,0 +1,202 @@
+---
+title: "Building dynamic GraphQL schema using the graphql-java library"
+publishedOn: 2020-06-16T09:15:00-0400
+category: "graphql"
+draft: true
+description:
+---
+
+## Introduction
+
+While working on a proof-of-concept of building a framework in Java to build GraphQLCRUD based API to a provided database,
+there was a need for dynamically generating GraphQL schema. After doing some research with the available options, I opted for `graphql-java` library.
+
+As you know GraphQL is a query language and server-side runtime for APIs, designed to provide clients with precisely the data they request.
+It allows clients to request only the necessary data, reducing over-fetching and under-fetching.
+And GraphQL schema defines the data structure and relationships in an API, serving as a single source of truth for the entire application's API.
+The schema specifies types, fields, and queries, facilitating efficient communication between clients and servers.
+
+## GraphQL Schema
+
+GraphQL has its type system that’s used to define the schema of an API.
+The syntax for writing schemas is called Schema Definition Language (SDL).
+We can either define the schema using SDL or define it programmatically as java code.
+But both of them are static ways of representation.
+In case you are building schema during runtime, it becomes difficult to recursively add new fields to your predefined definition.
+
+The `graphql-java` offers two different ways of defining the schema i.e. programmatically as Java code or via a SDL.
+A typical SDL schema definition structure goes as follows:
+
+```
+type Customer {
+   name : String
+   address : String
+   contact : Int
+}
+```
+
+Using the `graphql-java` library you can define it as:
+
+```
+GraphQLObjectType customer = newObject()
+    .name("Customer")
+    .field(newFieldDefinition()
+            .name("name")
+            .type(GraphQLString))
+    .field(newFieldDefinition()
+            .name("address")
+            .type(GraphQLString))
+    .field(newFieldDefinition()
+            .name("conatct")
+           .type(GraphQLInt))
+    .build();
+```
+
+So, let's take an example to build a custom schema builder to connect to a datasource, fetch database metadata and construct GraphQL schema on fly.
+
+Create a project outline using Spring Initialzr with Maven using the following command.
+
+```
+spring initializr new \
+    --path demo \
+    --project maven-project \
+    --language java \
+    --boot-version 2.3.0 \
+    --version 0.0.1-SNAPSHOT \
+    --group com.example \
+    --artifact demo \
+    --name schemabuilder \
+    --description "Schema Builder Project" \
+    --package-name com.example.demo \
+    --dependencies web \
+    --packaging jar \
+    --java-version 11
+```
+
+For this project, we will be using Teiid as a datasource and connecting to it. Add all the dependencies to the `pom.xml` file.
+
+```
+		<dependency>
+			<groupId>org.teiid</groupId>
+			<artifactId>teiid</artifactId>
+			<version>14.0.0</version>
+			<classifier>jdbc</classifier>
+		</dependency>
+
+		<dependency>
+			<groupId>org.teiid</groupId>
+			<artifactId>teiid-api</artifactId>
+			<version>14.0.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.teiid</groupId>
+			<artifactId>teiid-common-core</artifactId>
+			<version>14.0.0</version>
+		</dependency>
+
+    <dependency>
+			<groupId>com.graphql-java</groupId>
+			<artifactId>graphql-java</artifactId>
+			<version>12.0</version>
+		</dependency>
+```
+
+Now to start establish connection with the Teiid datasource. To read and store database meta data we will be using two interfaces `DatabaseMetaData` and `ResultSet`.
+These interfaces contain many methods for reading capabilities of a DBMS. Define a `Metadata.java` class for this.
+
+### Obtaining DatabaseMetaData instance
+
+Using the jdbc url for Teiid, obtain the `DatabaseMetaData` object from a `Connection` object.
+
+```
+Connection connection = DriverManager.getConnection("jdbc:teiid:customer@mm://localhost:31000", "sa", "sa");
+```
+
+### Listing Database Tables
+
+We can obtain a list of the defined tables in your database or data source with the help of `DatabaseMetaData` object.
+
+```
+String table[] = {"TABLE"};
+
+ResultSet resultSet = databaseMetaData.getTables(null,null,null,table);
+ArrayList<String> tables = new ArrayList();
+
+while(resultSet.next()) {
+  tables.add(resultSet.getString("TABLE_NAME"));
+}
+```
+
+### Listing Database Columns
+
+```
+ResultSet columns = databaseMetaData.getColumns(null,null, table_name, null);
+  while(columns.next()) {
+    String columnName = columns.getString("COLUMN_NAME");
+    String datatype = columns.getString("DATA_TYPE");
+    String columnsize = columns.getString("COLUMN_SIZE");
+  }
+```
+
+### Creating Schema
+
+Next step would be to create a schema using `GraphQLObjectType` object, store it's corresponding metadata in HashMap and read it's type from `Type` class defined in the next section.
+
+```
+ResultSet resultSet = databaseMetaData.getColumns(null, null, (String) tableName, null);
+
+GraphQLObjectType objectType = null;
+GraphQLObjectType.Builder graphQLObjectType = GraphQLObjectType.newObject();
+
+HashMap <String,String> data  = new HashMap<>();
+
+  while (resultSet.next()) {
+    data.put(resultSet.getString("COLUMN_NAME"), resultSet.getString("TYPE_NAME"));
+    for (Map.Entry<String, String> hm : data.entrySet()) {
+      graphQLObjectType
+          .name(tableName)
+          .field(GraphQLFieldDefinition.newFieldDefinition()
+              .name(hm.getKey())
+              .type(Type(hm.getValue())));
+      objectType = graphQLObjectType.build();
+      }
+    }
+```
+
+### Defining the field type in schema
+
+This class returns the type of field in each case, here we have defined only two types `GraphQLLong` and `GraphQLString`.
+
+```
+public static GraphQLScalarType Type(String type) {
+  if(type.equals("long")) {
+    return Scalars.GraphQLLong;
+  } else if (type.equals("string")) {
+    return Scalars.GraphQLString;
+  }
+  return null;
+}
+```
+
+### Building and printing schema
+
+To print schema is a defined manner we are using `SchemaPrinter` object which takes an object of `GraphQLSchema` type.
+
+```
+GraphQLSchema graphQLSchema = GraphQLSchema.newSchema().query(objectType).build();
+
+SchemaPrinter schemaPrinter = new SchemaPrinter();
+String printer = schemaPrinter.print(graphQLSchema);
+```
+
+That's it folks. 
+
+We have our custom schema builder connecting to our datasource, fetching metadata and using that we created GraphQL schama.
+This is a very basic example of how you can build a dynamic schema using the `graphql-java` library. You can extend this to add more features and capabilities.
+
+Here are some references that you can use to explore more about the libraries and tools used in this project:
+
+1. [graphql-java library](https://www.graphql-java.com/)
+2. [spring initializr](https://docs.spring.io/spring-cli/reference/initializr.html)
+3. [Teiid](https://teiid.io/)
