@@ -1,4 +1,4 @@
-import { Home, LibraryBig } from "lucide-react";
+import { Home, Layers, Layers2, LibraryBig, Pencil } from "lucide-react";
 import { ThemeChanger } from "./ThemeChanger";
 import Link from "next/link";
 
@@ -11,7 +11,7 @@ const navItems = [
   {
     path: `/blog`,
     label: `Blog`,
-    icon: <LibraryBig size={20} />,
+    icon: <Layers size={20} />,
   },
 ];
 
@@ -27,7 +27,7 @@ export const Navbar = () => {
             return <Navlink path={path} icon={icon} key={path} />;
           })}
         </ul>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <ul className="list-none">
             {rightNavItems.map(({ path, label, icon }) => {
               return <Navlink path={path} icon={icon} key={path} />;

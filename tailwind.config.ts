@@ -1,5 +1,7 @@
 import type { Config } from "tailwindcss";
+const colors = require("tailwindcss/colors");
 
+/** @type {import('tailwindcss').Config} */
 const config: Config = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -8,12 +10,15 @@ const config: Config = {
   ],
   theme: {
     colors: {
-      "primary-light": "#FFF",
+      ...colors,
+      "primary-light": "#FBFCFD",
       "primary-dark": "#111",
-      "secondary-light": "#F7F7F7",
-      "secondary-dark": "#181818",
+      "secondary-light": "#F2F4F7",
+      "secondary-dark": "#202020",
       "text-light": "#111",
       "text-dark": "#E0E0E0",
+      "text-secondary-light": "#687076",
+      "text-secondary-dark": "#9ba1a6",
     },
     extend: {
       backgroundImage: {
